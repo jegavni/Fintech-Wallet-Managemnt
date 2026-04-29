@@ -24,9 +24,8 @@ export async function GET() {
 
 
 /*
-POST -> Save recharge transaction using logged-in user
-GET  -> Fetch transactions + wallet balance
-*/
+POST -> Save recharge transaction using logged-in user */
+
 
 export async function POST(req: Request) {
   try {

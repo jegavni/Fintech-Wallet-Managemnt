@@ -58,15 +58,16 @@ export async function POST(req: Request) {
         name: user.name,
         email: user.email,
       },
-    });
+    });          
 
     response.cookies.set("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 1 * 60 * 60, // 1 hour
-    });
+      maxAge: 2 * 60 * 60, // 1 hour
+    }); 
+    
 
     return response;
   } catch (error) {

@@ -14,6 +14,7 @@ import {
   CreditCard,
   Wallet,
   Receipt,
+  LogOut,
 } from "lucide-react";
 
 interface Transaction {
@@ -102,6 +103,27 @@ const [amount, setAmount] = useState<string>("");
       toast.error("Wallet fetch failed");
     }
   };
+  const handleLogout = async () => {
+  try {
+    const res = await fetch("/api/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      toast.error(data.message || "Logout failed");
+      return;
+    }
+
+    toast.success("Logged out successfully");
+    router.push("/login");
+  } catch (error) {
+    console.log(error);
+    toast.error("Logout failed");
+  }
+};
 
  const fetchTransactions = async () => {
   try {
@@ -134,7 +156,7 @@ const [amount, setAmount] = useState<string>("");
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ amount: Number(amount),}),
+        body: JSON.stringify({ amount:Number(amount),}),
       });
 
       const order = await res.json();
@@ -179,11 +201,22 @@ const [amount, setAmount] = useState<string>("");
     router.push(path);
   };
 
+  
+
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+<div className="flex items-center justify-between">
+  <h1 className="text-3xl font-bold">Dashboard</h1>
 
+  <button
+    onClick={handleLogout}
+    className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl transition"
+  >
+    <LogOut className="w-5 h-5" />
+    Logout
+  </button>
+</div>
         <div className="bg-white rounded-2xl shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -193,9 +226,12 @@ const [amount, setAmount] = useState<string>("");
               </h2>
             </div>
 
-            <div className="bg-gray-100 rounded-2xl p-4">
-              <Wallet className="w-8 h-8" />
-            </div>
+          <div
+      onClick={() => router.push("/wallet")}
+      className="bg-gray-100 rounded-2xl p-4 cursor-pointer hover:shadow-md transition"
+    >
+      <Wallet className="w-8 h-8" />
+    </div>  
           </div>
 
           <div className="flex gap-3 mt-5">

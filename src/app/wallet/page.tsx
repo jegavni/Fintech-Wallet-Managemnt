@@ -8,6 +8,13 @@ interface Wallet {
   accountNumber: string;
 }
 
+interface Transaction {
+  id: number;
+  type: string;
+  amount: number;
+  created_at: string;
+}
+
 import {
   Smartphone,
   Zap,
@@ -28,10 +35,17 @@ const services = [
 
 export default function WalletPage() {
   const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [amount, setAmount] = useState("");
 
   useEffect(() => {
     fetchWallet();
+    fetchTransactions();
+
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    document.body.appendChild(script);
   }, []);
 
   const fetchWallet = async () => {
@@ -43,20 +57,65 @@ export default function WalletPage() {
     }
   };
 
+  const fetchTransactions = async () => {
+    try {
+      const res = await api.get("/api/transactions");
+      setTransactions(res.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const handleAddMoney = async () => {
-    if (!amount) return alert("Enter amount");
+    if (!amount) {
+      return alert("Enter amount");
+    }
 
     try {
-      await api.post("/api/wallet/add-money", {
+      const { data } = await api.post("/api/create-order", {
         amount: Number(amount),
       });
 
-      alert("Money added successfully");
-      setAmount("");
-      fetchWallet();
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: data.order.amount,
+        currency: "INR",
+        name: "Wallet Recharge",
+        description: "Add Money to Wallet",
+        order_id: data.order.id,
+
+        handler: async function (response: any) {
+          try {
+            await api.post("/api/verify-payment", {
+              ...response,
+              amount: Number(amount),
+            });
+
+            alert("Payment Successful");
+
+            setAmount("");
+            fetchWallet();
+            fetchTransactions();
+          } catch (error) {
+            console.log(error);
+            alert("Payment verification failed");
+          }
+        },
+
+        prefill: {
+          name: "User",
+        },
+
+        theme: {
+          color: "#000000",
+        },
+      };
+
+      const razorpay = new (window as any).Razorpay(options);
+      razorpay.open();
     } catch (error) {
       console.log(error);
-      alert("Failed to add money");
+      alert("Failed to initiate payment");
     }
   };
 
@@ -71,7 +130,10 @@ export default function WalletPage() {
 
           {wallet ? (
             <div className="space-y-2">
-              <p><strong>Account Number:</strong> {wallet.accountNumber}</p>
+              <p>
+                <strong>Account Number:</strong> {wallet.accountNumber}
+              </p>
+
               <p className="text-2xl font-bold text-green-600">
                 ₹{wallet.balance}
               </p>
@@ -104,46 +166,38 @@ export default function WalletPage() {
         </div>
 
         {/* Recharge & Bill Payments */}
-        <div className="bg-white rounded-2xl shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">Recharge & Bill Payments</h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {services.map((service) => {
-              const Icon = service.icon;
-              return (
-              <div
-                key={service.title}
-                className="border rounded-2xl p-5 hover:shadow-md cursor-pointer transition"
-              >
-                <div className="mb-3">
-                  <Icon className="w-8 h-8" />
-                </div>
-                <h3 className="font-medium">{service.title}</h3>
-              </div>
-              );
-            })}
-          </div>
-        </div>
+        
 
         {/* Recent Transactions */}
         <div className="bg-white rounded-2xl shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">Recent Transactions</h2>
+          <h2 className="text-xl font-semibold mb-4">
+            Recent Transactions
+          </h2>
 
           <div className="space-y-3">
-            <div className="flex justify-between border-b pb-2">
-              <span>Mobile Recharge</span>
-              <span>- ₹399</span>
-            </div>
+            {transactions.length > 0 ? (
+              transactions.map((txn) => (
+                <div
+                  key={txn.id}
+                  className="flex justify-between border-b pb-2"
+                >
+                  <span>{txn.type}</span>
 
-            <div className="flex justify-between border-b pb-2">
-              <span>Wallet Top-up</span>
-              <span>+ ₹1000</span>
-            </div>
-
-            <div className="flex justify-between border-b pb-2">
-              <span>Electricity Bill</span>
-              <span>- ₹850</span>
-            </div>
+                  <span
+                    className={
+                      txn.amount > 0
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }
+                  >
+                    {txn.amount > 0 ? "+" : "-"} ₹
+                    {Math.abs(txn.amount)}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p>No recent transactions</p>
+            )}
           </div>
         </div>
       </div>

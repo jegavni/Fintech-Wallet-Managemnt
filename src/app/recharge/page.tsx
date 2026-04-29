@@ -54,7 +54,6 @@ const fetchPlansByOperator = async () => {
     toast.error("Enter valid mobile number");
     return;
   }
-
   try {
     toast.info("Processing recharge...");
 
@@ -64,7 +63,7 @@ const fetchPlansByOperator = async () => {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    user_id: 1, // dynamic from logged-in user
+    
     type: "Mobile Recharge",
     description: `Recharge for ${mobileNumber} via ${operator}`,
     amount: Number(amount),
